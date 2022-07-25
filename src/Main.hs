@@ -41,9 +41,8 @@ instance Alternative Parser where
 charP :: Char -> Parser Char
 charP x = Parser f
   where
-    f y
-      | head y == x = Just (tail y, x)
-      | otherwise = Nothing
+    f (y : ys) = if y == x then Just (ys, y) else Nothing
+    f [] = Nothing
 
 stringP :: String -> Parser String
 stringP = traverse charP
