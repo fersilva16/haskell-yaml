@@ -6,6 +6,7 @@ import Data.Foldable (fold)
 import Data.Map (Map)
 import qualified Data.Map as Map
 import System.Environment (getArgs)
+import Text.ParserCombinators.ReadP (satisfy)
 
 data YamlValue
   = YamlNull
@@ -55,6 +56,12 @@ digitP = alternativeP ['0' .. '9']
 
 intP :: Parser Int
 intP = read <$> some digitP
+
+satisfyP :: (Char -> Bool) -> Parser Char
+satisfyP f = Parser fp
+  where
+    fp (y : ys) = if f y then Just (ys, y) else Nothing
+    fp [] = Nothing
 
 main :: IO ()
 main = do
