@@ -1,5 +1,8 @@
 module Main where
 
+import Control.Applicative
+import Control.Monad (MonadPlus (mzero))
+import Data.Foldable (fold)
 import Data.Map (Map)
 import qualified Data.Map as Map
 import System.Environment (getArgs)
@@ -31,6 +34,10 @@ instance Applicative Parser where
       (y'', a) <- p2 y'
       return (y'', f a)
 
+instance Alternative Parser where
+  empty = Parser (const Nothing)
+  (Parser p1) <|> (Parser p2) = Parser $ \y -> p1 y <|> p2 y
+
 charP :: Char -> Parser Char
 charP x = Parser f
   where
@@ -40,6 +47,15 @@ charP x = Parser f
 
 stringP :: String -> Parser String
 stringP = traverse charP
+
+alternativeP :: String -> Parser Char
+alternativeP = foldr ((<|>) . charP) empty
+
+digitP :: Parser Char
+digitP = alternativeP ['0' .. '9']
+
+intP :: Parser Int
+intP = read <$> some digitP
 
 main :: IO ()
 main = do
