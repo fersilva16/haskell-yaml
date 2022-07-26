@@ -14,7 +14,7 @@ data YamlValue
   | YamlNumber Integer
   | YamlString String
   | YamlList [YamlValue]
-  | YamlScalar [(String, YamlValue)]
+  | YamlScalar (String, YamlValue)
   deriving (Show)
 
 newtype Parser a = Parser
@@ -62,6 +62,15 @@ satisfyP f = Parser fp
   where
     fp (y : ys) = if f y then Just (ys, y) else Nothing
     fp [] = Nothing
+
+scalarKeyP :: Parser String
+scalarKeyP = some . satisfyP $ (/= ':')
+
+scalarValueP :: Parser YamlValue
+scalarValueP = YamlString <$> (some . satisfyP $ (/= '\n'))
+
+scalarP :: Parser YamlValue
+scalarP = YamlScalar <$> liftA2 (,) (scalarKeyP <* stringP ": ") scalarValueP
 
 main :: IO ()
 main = do
