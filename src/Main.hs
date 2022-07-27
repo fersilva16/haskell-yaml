@@ -7,7 +7,6 @@ import Data.Foldable (fold)
 import Data.Map (Map)
 import qualified Data.Map as Map
 import System.Environment (getArgs)
-import Text.ParserCombinators.ReadP (satisfy)
 
 data YamlValue
   = YamlNull
@@ -17,7 +16,6 @@ data YamlValue
   | YamlString String
   | YamlList [YamlValue]
   | YamlMapping (String, YamlValue)
-  | YamlMap [YamlValue]
   deriving (Show)
 
 newtype Parser a = Parser
@@ -74,6 +72,15 @@ alphaP = some . satisfyP $ isAlpha
 
 yamlNullP :: Parser YamlValue
 yamlNullP = YamlNull <$ stringP "null"
+
+trueP :: Parser Bool
+trueP = True <$ stringP "true"
+
+falseP :: Parser Bool
+falseP = False <$ stringP "false"
+
+yamlBoolP :: Parser YamlValue
+yamlBoolP = YamlBool <$> (trueP <|> falseP)
 
 yamlStringP :: Parser YamlValue
 yamlStringP = YamlString <$> alphaP
