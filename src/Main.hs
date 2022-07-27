@@ -15,7 +15,7 @@ data YamlValue
   | YamlFloat Float
   | YamlString String
   | YamlList [YamlValue]
-  | YamlMapping (String, YamlValue)
+  | YamlMapping [(String, YamlValue)]
   deriving (Show)
 
 newtype Parser a = Parser
@@ -92,7 +92,7 @@ yamlFloatP :: Parser YamlValue
 yamlFloatP = YamlFloat <$> floatP
 
 yamlMappingP :: Parser YamlValue
-yamlMappingP = YamlMapping <$> liftA2 (,) (alphaP <* stringP ": ") yamlStringP
+yamlMappingP = YamlMapping <$> liftA2 (\x y -> [(x, y)]) (alphaP <* stringP ": ") yamlStringP
 
 main :: IO ()
 main = do
