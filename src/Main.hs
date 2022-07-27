@@ -12,12 +12,12 @@ import Text.ParserCombinators.ReadP (satisfy)
 data YamlValue
   = YamlNull
   | YamlBool Bool
-  | YamlInteger Integer
+  | YamlInt Int
   | YamlFloat Float
   | YamlString String
   | YamlList [YamlValue]
   | YamlMapping (String, YamlValue)
-  | YamlMap [YamlMapping]
+  | YamlMap [YamlValue]
   deriving (Show)
 
 newtype Parser a = Parser
@@ -60,6 +60,9 @@ digitP = alternativeP ['0' .. '9']
 intP :: Parser Int
 intP = read <$> some digitP
 
+floatP :: Parser Float
+floatP = read <$> liftA3 (\x y z -> x ++ y ++ z) (some digitP) (stringP ".") (some digitP)
+
 satisfyP :: (Char -> Bool) -> Parser Char
 satisfyP f = Parser fp
   where
@@ -71,6 +74,12 @@ alphaP = some . satisfyP $ isAlpha
 
 yamlStringP :: Parser YamlValue
 yamlStringP = YamlString <$> alphaP
+
+yamlIntP :: Parser YamlValue
+yamlIntP = YamlInt <$> intP
+
+yamlFloatP :: Parser YamlValue
+yamlFloatP = YamlFloat <$> floatP
 
 yamlMappingP :: Parser YamlValue
 yamlMappingP = YamlMapping <$> liftA2 (,) (alphaP <* stringP ": ") yamlStringP
