@@ -2,6 +2,7 @@ module Main where
 
 import Control.Applicative
 import Control.Monad (MonadPlus (mzero))
+import Data.Char (isAlpha)
 import Data.Foldable (fold)
 import Data.Map (Map)
 import qualified Data.Map as Map
@@ -11,10 +12,12 @@ import Text.ParserCombinators.ReadP (satisfy)
 data YamlValue
   = YamlNull
   | YamlBool Bool
-  | YamlNumber Integer
+  | YamlInteger Integer
+  | YamlFloat Float
   | YamlString String
   | YamlList [YamlValue]
-  | YamlScalar (String, YamlValue)
+  | YamlMapping (String, YamlValue)
+  | YamlMap [YamlMapping]
   deriving (Show)
 
 newtype Parser a = Parser
@@ -63,14 +66,14 @@ satisfyP f = Parser fp
     fp (y : ys) = if f y then Just (ys, y) else Nothing
     fp [] = Nothing
 
-scalarKeyP :: Parser String
-scalarKeyP = some . satisfyP $ (/= ':')
+alphaP :: Parser String
+alphaP = some . satisfyP $ isAlpha
 
-scalarValueP :: Parser YamlValue
-scalarValueP = YamlString <$> (some . satisfyP $ (/= '\n'))
+yamlStringP :: Parser YamlValue
+yamlStringP = YamlString <$> alphaP
 
-scalarP :: Parser YamlValue
-scalarP = YamlScalar <$> liftA2 (,) (scalarKeyP <* stringP ": ") scalarValueP
+yamlMappingP :: Parser YamlValue
+yamlMappingP = YamlMapping <$> liftA2 (,) (alphaP <* stringP ": ") yamlStringP
 
 main :: IO ()
 main = do
