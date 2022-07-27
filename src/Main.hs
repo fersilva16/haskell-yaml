@@ -72,6 +72,9 @@ satisfyP f = Parser fp
 alphaP :: Parser String
 alphaP = some . satisfyP $ isAlpha
 
+yamlNullP :: Parser YamlValue
+yamlNullP = YamlNull <$ stringP "null"
+
 yamlStringP :: Parser YamlValue
 yamlStringP = YamlString <$> alphaP
 
