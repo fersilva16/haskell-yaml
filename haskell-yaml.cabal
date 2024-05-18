@@ -7,7 +7,7 @@ homepage:       https://github.com/fersilva16/haskell-yaml#readme
 bug-reports:    https://github.com/fersilva16/haskell-yaml/issues
 author:         Fernando Silva
 maintainer:     fernandonsilva16@gmail.com
-copyright:      2022 Fernando Silva
+copyright:      2024 Fernando Silva
 license:        MIT
 license-file:   LICENSE
 build-type:     Simple
