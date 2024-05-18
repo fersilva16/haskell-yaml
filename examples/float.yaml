@@ -1,0 +1,9 @@
+zero: 0.0
+positive: +1.0
+negative: -1.0
+canonical: 6.8523015e+5
+exponential: 685.230_15e+03
+fixed: 685_230.15
+positive infinity: +.inf
+negative infinity: -.inf
+not a number: .NaN

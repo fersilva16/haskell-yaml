@@ -1,0 +1,9 @@
+valid_true:
+  - true
+  - True
+  - TRUE
+
+valid_false:
+  - false
+  - False
+  - FALSE
