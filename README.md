@@ -2,6 +2,12 @@
 
 YAML parser in Haskell.
 
+Running:
+
+```sh
+cabal run haskell-yaml
+```
+
 <!-- Links -->
 
 [license-shield]: https://img.shields.io/github/license/fersilva16/haskell-yaml?style=flat-square
