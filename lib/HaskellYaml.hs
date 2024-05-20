@@ -56,17 +56,23 @@ stringP = traverse charP
 alternativeP :: String -> Parser Char
 alternativeP = foldr ((<|>) . charP) empty
 
-optionalP :: Parser a -> Parser (Maybe a)
-optionalP (Parser p) = Parser $ \y -> 
-  case p y of
-    Just (y', r) -> Just (y', Just r)
-    Nothing -> Just (y, Nothing)
-
 (?>) :: Parser a -> Parser b -> Parser b
-p1 ?> p2 = optionalP p1 *> p2
+p1 ?> p2 = optional p1 *> p2
 
 (<?) :: Parser a -> Parser b -> Parser a
-p1 <? p2 = p1 <* optionalP  p2
+p1 <? p2 = p1 <* optional p2
+
+(+?>) :: Parser [a] -> Parser [a] -> Parser [a]
+p1 +?> p2 = liftA2 f (optional p1) p2
+  where
+    f (Just x) y = x ++ y
+    f Nothing y = y
+
+(<?+) :: Parser [a] -> Parser [a] -> Parser [a]
+p1 <?+ p2 = liftA2 f p1 (optional p2)
+  where
+    f x (Just y) = x ++ y
+    f x Nothing = x
 
 digitP :: Parser Char
 digitP = alternativeP ['0' .. '9']
@@ -74,23 +80,17 @@ digitP = alternativeP ['0' .. '9']
 decimalP :: Parser Char
 decimalP = some (charP '_') ?> digitP <? some (charP '_')
 
+signP :: Parser String -> Parser String
+signP p = (stringP "+" ?> p) <|> (stringP "-" +?> p)
+
 intP :: Parser Int
-intP = read <$> some decimalP
+intP = read <$> signP (some decimalP)
 
-intPositiveP :: Parser Int
-intPositiveP = charP '+' *> intP
-
-intNegativeP :: Parser Int
-intNegativeP = ((-1) *) <$> (charP '-' *> intP)
+scientificNotationP :: Parser String
+scientificNotationP = stringP "e" +?> signP (some digitP)
 
 floatP :: Parser Float
-floatP = read <$> liftA3 (\x y z -> x ++ y ++ z) (some decimalP) (stringP ".") (some decimalP)
-
-floatPositiveP :: Parser Float
-floatPositiveP = charP '+' *> floatP
-
-floatNegativeP :: Parser Float
-floatNegativeP = ((-1) *) <$> (charP '-' *> floatP)
+floatP = read <$> signP (liftA3 (\x y z -> x ++ y ++ z) (some decimalP) (stringP ".") (some decimalP <?+ scientificNotationP))
 
 trueP :: Parser Bool
 trueP = True <$ (stringP "true" <|> stringP "True" <|> stringP "TRUE")
@@ -114,10 +114,10 @@ yamlBoolP :: Parser YamlScalar
 yamlBoolP = YamlBool <$> (trueP <|> falseP)
 
 yamlIntP :: Parser YamlScalar
-yamlIntP = YamlInt <$> (intP <|> intPositiveP <|> intNegativeP)
+yamlIntP = YamlInt <$> intP
 
 yamlFloatP :: Parser YamlScalar
-yamlFloatP = YamlFloat <$> (floatP <|> floatPositiveP <|> floatNegativeP)
+yamlFloatP = YamlFloat <$> floatP
 
 yamlScalarP :: Parser Yaml
 yamlScalarP = YamlScalar <$> (yamlNullP <|> yamlBoolP <|> yamlFloatP <|> yamlIntP)
