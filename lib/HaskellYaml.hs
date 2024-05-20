@@ -7,16 +7,19 @@ import Data.Foldable (fold)
 import Data.Map (Map)
 import qualified Data.Map as Map
 
-
-data YamlValue
+data YamlScalar
   = YamlNull
   | YamlBool Bool
   | YamlInt Int
   | YamlFloat Float
   | YamlString String
-  | YamlSequence [YamlValue]
-  | YamlStructure [YamlValue]
-  | YamlMap [(String, YamlValue)]
+  deriving (Eq, Show)
+
+data Yaml
+  = YamlScalar YamlScalar
+  | YamlSequence [Yaml]
+  | YamlStructure [Yaml]
+  | YamlMap [(YamlScalar, Yaml)]
   deriving (Eq, Show)
 
 newtype Parser a = Parser
@@ -88,6 +91,12 @@ floatPositiveP = charP '+' *> floatP
 floatNegativeP :: Parser Float
 floatNegativeP = ((-1) *) <$> (charP '-' *> floatP)
 
+trueP :: Parser Bool
+trueP = True <$ (stringP "true" <|> stringP "True" <|> stringP "TRUE")
+
+falseP :: Parser Bool
+falseP = False <$ (stringP "false" <|> stringP "False" <|> stringP "FALSE")
+
 -- satisfyP :: (Char -> Bool) -> Parser Char
 -- satisfyP f = Parser fp
 --   where
@@ -97,27 +106,20 @@ floatNegativeP = ((-1) *) <$> (charP '-' *> floatP)
 -- alphaP :: Parser String
 -- alphaP = some . satisfyP $ isAlpha
 
-yamlNullP :: Parser YamlValue
+yamlNullP :: Parser YamlScalar
 yamlNullP = YamlNull <$ (stringP "null" <|> stringP "Null" <|> stringP "NULL" <|> stringP "~")
 
-trueP :: Parser Bool
-trueP = True <$ (stringP "true" <|> stringP "True" <|> stringP "TRUE")
-
-falseP :: Parser Bool
-falseP = False <$ (stringP "false" <|> stringP "False" <|> stringP "FALSE")
-
-yamlBoolP :: Parser YamlValue
+yamlBoolP :: Parser YamlScalar
 yamlBoolP = YamlBool <$> (trueP <|> falseP)
 
-yamlIntP :: Parser YamlValue
+yamlIntP :: Parser YamlScalar
 yamlIntP = YamlInt <$> (intP <|> intPositiveP <|> intNegativeP)
 
-yamlFloatP :: Parser YamlValue
+yamlFloatP :: Parser YamlScalar
 yamlFloatP = YamlFloat <$> (floatP <|> floatPositiveP <|> floatNegativeP)
 
--- yamlStringP :: Parser YamlValue
--- yamlStringP = YamlString <$> alphaP
+yamlScalarP :: Parser Yaml
+yamlScalarP = YamlScalar <$> (yamlNullP <|> yamlBoolP <|> yamlFloatP <|> yamlIntP)
 
--- yamlMapP :: Parser YamlValue
--- yamlMapP = YamlMap <$> liftA2 (\x y -> [(x, y)]) (alphaP <* stringP ": ") yamlStringP
-
+yamlP :: Parser Yaml
+yamlP = yamlScalarP
