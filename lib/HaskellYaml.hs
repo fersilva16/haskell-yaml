@@ -44,18 +44,6 @@ instance Alternative Parser where
   empty = Parser (const Nothing)
   (Parser p1) <|> (Parser p2) = Parser $ \y -> p1 y <|> p2 y
 
-charP :: Char -> Parser Char
-charP x = Parser f
-  where
-    f (y : ys) = if y == x then Just (ys, y) else Nothing
-    f [] = Nothing
-
-stringP :: String -> Parser String
-stringP = traverse charP
-
-alternativeP :: String -> Parser Char
-alternativeP = foldr ((<|>) . charP) empty
-
 (?>) :: Parser a -> Parser b -> Parser b
 p1 ?> p2 = optional p1 *> p2
 
@@ -74,29 +62,41 @@ p1 <?+ p2 = liftA2 f p1 (optional p2)
     f x (Just y) = x ++ y
     f x Nothing = x
 
-digitP :: Parser Char
-digitP = alternativeP ['0' .. '9']
+char :: Char -> Parser Char
+char x = Parser f
+  where
+    f (y : ys) = if y == x then Just (ys, y) else Nothing
+    f [] = Nothing
 
-decimalP :: Parser Char
-decimalP = some (charP '_') ?> digitP <? some (charP '_')
+string :: String -> Parser String
+string = traverse char
 
-signP :: Parser String -> Parser String
-signP p = (stringP "+" ?> p) <|> (stringP "-" +?> p)
+alternative :: String -> Parser Char
+alternative = foldr ((<|>) . char) empty
 
-intP :: Parser Int
-intP = read <$> signP (some decimalP)
+digit :: Parser Char
+digit = alternative ['0' .. '9']
 
-scientificNotationP :: Parser String
-scientificNotationP = stringP "e" +?> signP (some digitP)
+decimal :: Parser Char
+decimal = some (char '_') ?> digit <? some (char '_')
 
-floatP :: Parser Float
-floatP = read <$> signP (liftA3 (\x y z -> x ++ y ++ z) (some decimalP) (stringP ".") (some decimalP <?+ scientificNotationP))
+sign :: Parser String -> Parser String
+sign p = (string "+" ?> p) <|> (string "-" +?> p)
 
-trueP :: Parser Bool
-trueP = True <$ (stringP "true" <|> stringP "True" <|> stringP "TRUE")
+int :: Parser Int
+int = read <$> sign (some decimal)
 
-falseP :: Parser Bool
-falseP = False <$ (stringP "false" <|> stringP "False" <|> stringP "FALSE")
+scientificNotation :: Parser String
+scientificNotation = string "e" +?> sign (some digit)
+
+float :: Parser Float
+float = read <$> sign (liftA3 (\x y z -> x ++ y ++ z) (some decimal) (string ".") (some decimal <?+ scientificNotation))
+
+true :: Parser Bool
+true = True <$ (string "true" <|> string "True" <|> string "TRUE")
+
+false :: Parser Bool
+false = False <$ (string "false" <|> string "False" <|> string "FALSE")
 
 -- satisfyP :: (Char -> Bool) -> Parser Char
 -- satisfyP f = Parser fp
@@ -107,20 +107,20 @@ falseP = False <$ (stringP "false" <|> stringP "False" <|> stringP "FALSE")
 -- alphaP :: Parser String
 -- alphaP = some . satisfyP $ isAlpha
 
-yamlNullP :: Parser YamlScalar
-yamlNullP = YamlNull <$ (stringP "null" <|> stringP "Null" <|> stringP "NULL" <|> stringP "~")
+yamlNull :: Parser YamlScalar
+yamlNull = YamlNull <$ (string "null" <|> string "Null" <|> string "NULL" <|> string "~")
 
-yamlBoolP :: Parser YamlScalar
-yamlBoolP = YamlBool <$> (trueP <|> falseP)
+yamlBool :: Parser YamlScalar
+yamlBool = YamlBool <$> (true <|> false)
 
-yamlIntP :: Parser YamlScalar
-yamlIntP = YamlInt <$> intP
+yamlInt :: Parser YamlScalar
+yamlInt = YamlInt <$> int
 
-yamlFloatP :: Parser YamlScalar
-yamlFloatP = YamlFloat <$> floatP
+yamlFloat :: Parser YamlScalar
+yamlFloat = YamlFloat <$> float
 
-yamlScalarP :: Parser Yaml
-yamlScalarP = YamlScalar <$> (yamlNullP <|> yamlBoolP <|> yamlFloatP <|> yamlIntP)
+yamlScalar :: Parser Yaml
+yamlScalar = YamlScalar <$> (yamlNull <|> yamlBool <|> yamlFloat <|> yamlInt)
 
-yamlP :: Parser Yaml
-yamlP = yamlScalarP
+yaml :: Parser Yaml
+yaml = yamlScalar
