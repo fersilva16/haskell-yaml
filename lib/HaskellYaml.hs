@@ -2,7 +2,7 @@ module HaskellYaml where
 
 import Control.Applicative
 import Control.Monad (MonadPlus (mzero))
-import Data.Char (isAlpha)
+import Data.Char (isAlpha, isSpace)
 import Data.Foldable (fold)
 import Data.Map (Map)
 import qualified Data.Map as Map
@@ -56,17 +56,26 @@ stringP = traverse charP
 alternativeP :: String -> Parser Char
 alternativeP = foldr ((<|>) . charP) empty
 
+optionalP :: Parser a -> Parser (Maybe a)
+optionalP (Parser p) = Parser $ \y -> 
+  case p y of
+    Just (y', r) -> Just (y', Just r)
+    Nothing -> Just (y, Nothing)
+
+(?>) :: Parser a -> Parser b -> Parser b
+p1 ?> p2 = optionalP p1 *> p2
+
+(<?) :: Parser a -> Parser b -> Parser a
+p1 <? p2 = p1 <* optionalP  p2
+
 digitP :: Parser Char
 digitP = alternativeP ['0' .. '9']
 
-intCanonicalP :: Parser Int
-intCanonicalP = read <$> some digitP
-
-intDecimalP :: Parser Int
-intDecimalP = read <$> some (digitP <|> (some (charP '_') *> digitP))
+decimalP :: Parser Char
+decimalP = some (charP '_') ?> digitP <? some (charP '_')
 
 intP :: Parser Int
-intP = intDecimalP <|> intCanonicalP 
+intP = read <$> some decimalP
 
 intPositiveP :: Parser Int
 intPositiveP = charP '+' *> intP
@@ -74,16 +83,8 @@ intPositiveP = charP '+' *> intP
 intNegativeP :: Parser Int
 intNegativeP = ((-1) *) <$> (charP '-' *> intP)
 
-floatCanonicalP :: Parser Float
-floatCanonicalP = read <$> liftA3 (\x y z -> x ++ y ++ z) (some digitP) (stringP ".") (some digitP)
-
-floatDecimalP :: Parser Float
-floatDecimalP = let
-  decimalP = digitP <|> (some (charP '_') *> digitP)
-  in read <$> liftA3 (\x y z -> x ++ y ++ z) (some decimalP) (stringP ".") (some decimalP)
-
 floatP :: Parser Float
-floatP = floatCanonicalP <|> floatDecimalP
+floatP = read <$> liftA3 (\x y z -> x ++ y ++ z) (some decimalP) (stringP ".") (some decimalP)
 
 floatPositiveP :: Parser Float
 floatPositiveP = charP '+' *> floatP
